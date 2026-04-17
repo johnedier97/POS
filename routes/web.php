@@ -32,9 +32,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/sales/{sale}/receipt', [SaleController::class, 'receipt'])->name('sales.receipt');
     Route::post('/sales/{sale}/invoice-mock', [SaleController::class, 'invoiceMock'])->name('sales.invoice-mock');
 
+    Route::resource('purchases', \App\Http\Controllers\PurchaseOrderController::class);
+    Route::post('/purchases/{purchase}/receive', [\App\Http\Controllers\PurchaseOrderController::class, 'receive'])->name('purchases.receive');
+    Route::post('/purchases/{purchase}/revert', [\App\Http\Controllers\PurchaseOrderController::class, 'revert'])->name('purchases.revert');
+
+    Route::get('/inventory', [\App\Http\Controllers\InventoryController::class, 'index'])->name('inventory.index');
+
     // Admin exclusive routes
     Route::middleware(['role:admin'])->group(function () {
         Route::resource('users', \App\Http\Controllers\UserController::class);
+        Route::resource('suppliers', \App\Http\Controllers\SupplierController::class);
     });
 });
 

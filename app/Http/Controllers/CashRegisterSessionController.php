@@ -61,14 +61,34 @@ class CashRegisterSessionController extends Controller
             'final_reported_balance' => 'required|numeric|min:0'
         ]);
 
+        // Calculate expected balance based on cash payments + initial balance
+        $cashPaymentMethodId = \App\Models\PaymentMethod::where('name', 'Efectivo')->value('id');
+        
+        $totalCashSales = 0;
+        if ($cashPaymentMethodId) {
+            $totalCashSales = \App\Models\Payment::whereHas('sale', function ($query) use ($session) {
+                $query->where('session_id', $session->id)->where('type', 'sale');
+            })->where('payment_method_id', $cashPaymentMethodId)->sum('amount');
+        } else {
+            // Fallback if 'Efectivo' payment method is missing
+            $totalCashSales = \App\Models\Sale::where('session_id', $session->id)->where('type', 'sale')->sum('total');
+        }
+
+        $calculated_balance = $session->initial_balance + $totalCashSales;
+
+        // Verify if reported matches calculated (with rounding to avoid float precision issues)
+        if (round($request->final_reported_balance, 2) !== round($calculated_balance, 2)) {
+            return redirect()->back()
+                ->with('error', 'El monto FÍSICO reportado ($' . number_format($request->final_reported_balance, 2) . ') no coincide con el balance CALCULADO del sistema ($' . number_format($calculated_balance, 2) . '). Verifica el dinero en gaveta o la validez de las ventas antes de cerrar.');
+        }
+
         $session->update([
             'closed_at' => now(),
             'final_reported_balance' => $request->final_reported_balance,
-            // TODO: final_calculated_balance will be aggregated later when Sales module is done
-            'final_calculated_balance' => $session->initial_balance, 
+            'final_calculated_balance' => $calculated_balance, 
             'status' => 'closed'
         ]);
 
-        return redirect()->route('dashboard')->with('success', 'Turno cerrado. Caja arqueada exitosamente.');
+        return redirect()->route('dashboard')->with('success', 'Turno cerrado. Caja arqueada exitosamente con un balance de $' . number_format($calculated_balance, 2));
     }
 }
