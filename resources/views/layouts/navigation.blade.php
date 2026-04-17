@@ -33,6 +33,11 @@
                     <x-nav-link :href="route('registers.index')" :active="request()->routeIs('registers.*')">
                         {{ __('Cajas Registradoras') }}
                     </x-nav-link>
+                    @if(Auth::user()->role && Auth::user()->role->name === 'admin')
+                    <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
+                        {{ __('Usuarios') }}
+                    </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -106,6 +111,11 @@
             <x-responsive-nav-link :href="route('registers.index')" :active="request()->routeIs('registers.*')">
                 {{ __('Cajas Registradoras') }}
             </x-responsive-nav-link>
+            @if(Auth::user()->role && Auth::user()->role->name === 'admin')
+            <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
+                {{ __('Usuarios') }}
+            </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

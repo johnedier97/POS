@@ -31,6 +31,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
     Route::get('/sales/{sale}/receipt', [SaleController::class, 'receipt'])->name('sales.receipt');
     Route::post('/sales/{sale}/invoice-mock', [SaleController::class, 'invoiceMock'])->name('sales.invoice-mock');
+
+    // Admin exclusive routes
+    Route::middleware(['role:admin'])->group(function () {
+        Route::resource('users', \App\Http\Controllers\UserController::class);
+    });
 });
 
 require __DIR__.'/auth.php';
