@@ -43,7 +43,11 @@
                     <!-- Password -->
                     <div class="mb-4">
                         <x-input-label for="password" :value="__('Contraseña')" />
-                        <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required />
+                        <p class="mt-1 text-xs text-gray-500 flex items-center">
+                            <svg class="w-3 h-3 mr-1 text-indigo-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+                            {{ __('La contraseña debe contener minimo 8 caracteres.') }}
+                        </p>
+                        <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required minlength="8" />
                         <x-input-error :messages="$errors->get('password')" class="mt-2" />
                     </div>
 
