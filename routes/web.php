@@ -16,7 +16,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     Route::resource('units', \App\Http\Controllers\UnitOfMeasureController::class);
-    Route::resource('products', \App\Http\Controllers\ProductController::class);
     Route::resource('branches', \App\Http\Controllers\BranchController::class);
     Route::resource('registers', \App\Http\Controllers\CashRegisterController::class);
     
@@ -42,6 +41,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['role:admin'])->group(function () {
         Route::resource('users', \App\Http\Controllers\UserController::class);
         Route::resource('suppliers', \App\Http\Controllers\SupplierController::class);
+        Route::resource('products', \App\Http\Controllers\ProductController::class);
+        Route::resource('inventory', \App\Http\Controllers\InventoryController::class);
     });
 });
 
