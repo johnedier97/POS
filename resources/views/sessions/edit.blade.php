@@ -7,6 +7,21 @@
 
     <div class="py-12">
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
+            
+            @if(session('error'))
+                <div class="bg-rose-100 border-l-4 border-rose-500 text-rose-700 p-4 mb-6 rounded shadow-md" role="alert">
+                    <p class="font-bold">¡Atención!</p>
+                    <p>{{ session('error') }}</p>
+                </div>
+            @endif
+
+            @if(session('success'))
+                <div class="bg-emerald-100 border-l-4 border-emerald-500 text-emerald-700 p-4 mb-6 rounded shadow-md" role="alert">
+                    <p class="font-bold">Éxito</p>
+                    <p>{{ session('success') }}</p>
+                </div>
+            @endif
+
             <div class="bg-white overflow-hidden shadow-xl sm:rounded-2xl border border-gray-100 p-8">
                 
                 <form action="{{ route('sessions.update', $session) }}" method="POST" class="space-y-6">
