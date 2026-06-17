@@ -18,6 +18,11 @@
                     <x-nav-link :href="route('pos.index')" :active="request()->routeIs('pos.index')">
                         {{ __('Ventas') }}
                     </x-nav-link>
+                    @if(Auth::user()->role && Auth::user()->role->name === 'admin')
+                        <x-nav-link :href="route('sales.index')" :active="request()->routeIs('sales.index')">
+                            {{ __('Historial de Ventas') }}
+                        </x-nav-link>
+                    @endif
 
                     @if(Auth::user()->role && Auth::user()->role->name === 'admin')
                         <!-- Desplegable Configuración -->
@@ -39,7 +44,6 @@
                                 </x-slot>
 
                                 <x-slot name="content">
-                                    <x-dropdown-link :href="route('sales.index')">{{ __('Historial de Ventas') }}</x-dropdown-link>
                                     <hr class="border-gray-100 my-1">
                                     <x-dropdown-link :href="route('products.index')">{{ __('Productos') }}</x-dropdown-link>
                                     <x-dropdown-link
