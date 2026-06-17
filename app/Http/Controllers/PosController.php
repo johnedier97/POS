@@ -20,7 +20,7 @@ class PosController extends Controller
     {
         $session = Auth::user()->sessions()->where('status', 'open')->latest()->first();
         if (!$session) {
-            return redirect()->route('dashboard')->with('error', 'Debes abrir tu turno de caja antes de entrar al módulo POS.');
+            return redirect()->route('dashboard')->with('error', 'Debes abrir tu turno en una caja antes de entrar al modulo de ventas.');
         }
 
         $products = Product::all();

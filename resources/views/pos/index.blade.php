@@ -608,6 +608,7 @@
                             this.lastSaleType  = this.currentTab.type;
 
                             // Show success modal (closeSuccessModal() clears cart)
+                            this.isPaymentModalOpen = false;
                             this.isSuccessModalOpen = true;
                         } else {
                             alert('Hubo un error al procesar. Verifica la conexión.\n' + (result.error || ''));

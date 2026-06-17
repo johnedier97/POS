@@ -15,8 +15,8 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Inicio') }}
                     </x-nav-link>
-                    <x-nav-link href="#" :active="false">
-                        {{ __('Ventas (POS)') }}
+                    <x-nav-link :href="route('pos.index')" :active="request()->routeIs('pos.index')">
+                        {{ __('Ventas') }}
                     </x-nav-link>
 
                     @if(Auth::user()->role && Auth::user()->role->name === 'admin')
@@ -144,8 +144,8 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Inicio') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link href="#" :active="false">
-                {{ __('Ventas (POS)') }}
+            <x-responsive-nav-link :href="route('pos.index')" :active="request()->routeIs('pos.index')">
+                {{ __('Ventas') }}
             </x-responsive-nav-link>
             @if(Auth::user()->role && Auth::user()->role->name === 'admin')
                 <div class="pt-4 pb-1 border-t border-gray-200 bg-gray-50">
