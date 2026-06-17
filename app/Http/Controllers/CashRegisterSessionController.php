@@ -4,8 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\CashRegisterSession;
 use App\Models\CashRegister;
+use App\Models\Payment;
+use App\Models\User;
+use App\Mail\CashRegisterClosedMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 
 class CashRegisterSessionController extends Controller
 {
@@ -88,6 +92,19 @@ class CashRegisterSessionController extends Controller
             'final_calculated_balance' => $calculated_balance, 
             'status' => 'closed'
         ]);
+
+        // Notificar a los administradores vía Cola (Queue)
+        try {
+            $admins = User::whereHas('role', function($query) {
+                $query->where('name', 'admin');
+            })->get();
+
+            foreach ($admins as $admin) {
+                Mail::to($admin->email)->queue(new CashRegisterClosedMail($session, $totalCashSales, $request->final_reported_balance));
+            }
+        } catch (\Exception $e) {
+            \Log::error("Error enviando correos de cierre de caja: " . $e->getMessage());
+        }
 
         return redirect()->route('dashboard')->with('success', 'Turno cerrado. Caja arqueada exitosamente con un balance de $' . number_format($calculated_balance, 2));
     }
