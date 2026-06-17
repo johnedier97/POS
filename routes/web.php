@@ -28,6 +28,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/pos', [\App\Http\Controllers\PosController::class, 'store'])->name('pos.store');
 
     Route::get('/sales', [SaleController::class, 'index'])->name('sales.index');
+    Route::get('/sales/{sale}', [SaleController::class, 'show'])->name('sales.show');
     Route::get('/sales/{sale}/receipt', [SaleController::class, 'receipt'])->name('sales.receipt');
     Route::post('/sales/{sale}/invoice-mock', [SaleController::class, 'invoiceMock'])->name('sales.invoice-mock');
 

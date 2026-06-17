@@ -39,6 +39,8 @@
                                 </x-slot>
 
                                 <x-slot name="content">
+                                    <x-dropdown-link :href="route('sales.index')">{{ __('Historial de Ventas') }}</x-dropdown-link>
+                                    <hr class="border-gray-100 my-1">
                                     <x-dropdown-link :href="route('products.index')">{{ __('Productos') }}</x-dropdown-link>
                                     <x-dropdown-link
                                         :href="route('branches.index')">{{ __('Sucursales') }}</x-dropdown-link>
@@ -150,6 +152,7 @@
             @if(Auth::user()->role && Auth::user()->role->name === 'admin')
                 <div class="pt-4 pb-1 border-t border-gray-200 bg-gray-50">
                     <div class="px-4 py-2 font-bold text-xs uppercase text-gray-400">Configuración Ventas</div>
+                    <x-responsive-nav-link :href="route('sales.index')" :active="request()->routeIs('sales.index')">{{ __('Historial de Ventas') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('products.index')">{{ __('Productos') }}</x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('branches.index')">{{ __('Sucursales') }}</x-responsive-nav-link>
                     <x-responsive-nav-link

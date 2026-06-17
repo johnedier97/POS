@@ -35,6 +35,22 @@ class SaleController extends Controller
     }
 
     /**
+     * Display the specified sale details.
+     */
+    public function show(Sale $sale)
+    {
+        $sale->load([
+            'details.product',
+            'payments.paymentMethod',
+            'customer',
+            'session.cashRegister.branch',
+            'user'
+        ]);
+
+        return view('sales.show', compact('sale'));
+    }
+
+    /**
      * Show the printable receipt for a sale.
      */
     public function receipt(Sale $sale)
