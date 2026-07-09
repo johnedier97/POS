@@ -1,0 +1,27 @@
+schema: spec-driven
+
+# Contexto del proyecto
+# Le da a la IA el mapa completo de tu entorno de desarrollo.
+context: |
+  Stack tecnológico: PHP 8.3, Laravel, MySQL, Tailwind CSS.
+  Entorno de desarrollo: Contenedores Docker utilizando Laravel Sail.
+  Arquitectura y Convenciones:
+    - Seguir la estructura estándar de Laravel (MVC) y buenas prácticas de desarrollo.
+    - Los cambios en la base de datos se deben realizar estrictamente mediante migraciones de Laravel.
+    - El diseño visual debe utilizar exclusivamente clases utilitarias de Tailwind CSS; evitar CSS puro o estilos en línea.
+    - Uso de Eloquent ORM para interactuar con la base de datos, cuidando el rendimiento (evitar problemas de consultas N+1).
+    - Todos los comandos de CLI (Artisan, Composer, NPM) deben ejecutarse a través de Laravel Sail (ej. `./vendor/bin/sail artisan ...`).
+
+# Reglas por artefacto
+# Reglas personalizadas para que las especificaciones de OpenSpec sean precisas y útiles.
+rules:
+  proposal:
+    - Siempre especificar si la nueva funcionalidad requiere crear o modificar migraciones de la base de datos.
+    - Incluir una breve descripción de cómo interactuará la vista (Tailwind/Blade) con los controladores de Laravel.
+  tasks:
+    - Dividir las tareas en pasos pequeños y modulares (ej. 1. Migración/Modelo, 2. Controlador/Lógica, 3. Vista/Tailwind, 4. Pruebas).
+    - Incluir explícitamente los comandos de Sail necesarios para ejecutar o verificar cada tarea (ej. cómo correr las migraciones o los tests).
+  code:
+    - Aplicar tipado estricto en PHP cuando sea posible (`declare(strict_types=1);`).
+    - El código generado debe seguir los estándares de codificación PSR-12.Kronos70
+    
