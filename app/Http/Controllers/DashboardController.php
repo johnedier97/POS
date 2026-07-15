@@ -1,52 +1,51 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\CashRegisterSession;
 use App\Models\Inventory;
 use App\Models\Sale;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    /**
-     * Display the main system dashboard with real-time stats.
-     */
     public function index()
     {
-        // 1. Today's Sales Total (excludes 'waste')
-        $todaySales = Sale::where('type', 'sale')
-            ->whereDate('created_at', Carbon::today())
-            ->sum('total');
-
-        // 2. Inventory Alerts (Stock < 5)
-        // In a real app, this threshold could be in settings table.
-        $inventoryAlerts = Inventory::where('stock', '<', 5)->count();
-
-        // 3. Active Cash Registers (Open Sessions)
-        $activeRegisters = CashRegisterSession::where('status', 'open')->count();
-
-        // 4. Chart Data (Last 7 days of sales)
-        $days = [];
-        $salesData = [];
-
-        for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::today()->subDays($i);
-            $days[] = $date->format('D d'); // Ex: Mon 25
-
-            $total = Sale::where('type', 'sale')
-                ->whereDate('created_at', $date)
+        $stats = Cache::remember('dashboard:stats', 60, function () {
+            $todaySales = Sale::where('type', 'sale')
+                ->whereDate('created_at', Carbon::today())
                 ->sum('total');
 
-            $salesData[] = (float) $total;
-        }
+            $inventoryAlerts = Inventory::where('stock', '<', 5)->count();
 
-        return view('dashboard', compact(
-            'todaySales',
-            'inventoryAlerts',
-            'activeRegisters',
-            'days',
-            'salesData'
-        ));
+            $activeRegisters = CashRegisterSession::where('status', 'open')->count();
+
+            $start = Carbon::today()->subDays(6);
+            $end = Carbon::today()->endOfDay();
+
+            $salesByDay = Sale::where('type', 'sale')
+                ->whereBetween('created_at', [$start, $end])
+                ->groupBy(DB::raw('DATE(created_at)'))
+                ->selectRaw('DATE(created_at) as date, SUM(total) as total')
+                ->pluck('total', 'date');
+
+            $days = [];
+            $salesData = [];
+
+            for ($i = 6; $i >= 0; $i--) {
+                $date = Carbon::today()->subDays($i);
+                $dateKey = $date->format('Y-m-d');
+                $days[] = $date->format('D d');
+                $salesData[] = (float) ($salesByDay[$dateKey] ?? 0);
+            }
+
+            return compact('todaySales', 'inventoryAlerts', 'activeRegisters', 'days', 'salesData');
+        });
+
+        return view('dashboard', $stats);
     }
 }

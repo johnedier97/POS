@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
@@ -24,7 +26,6 @@ class PosController extends Controller
 
         $products = Product::all();
         $paymentMethods = PaymentMethod::where('is_active', true)->get();
-        // Fallback for tests if no payment methods exist
         if ($paymentMethods->isEmpty()) {
             PaymentMethod::create(['name' => 'Efectivo', 'is_active' => true]);
             PaymentMethod::create(['name' => 'Tarjeta de Crédito', 'is_active' => true]);
@@ -53,17 +54,15 @@ class PosController extends Controller
         try {
             DB::beginTransaction();
 
-            // 1. Create Sale
             $sale = Sale::create([
                 'session_id' => $session->id,
                 'user_id' => Auth::id(),
                 'customer_id' => $request->input('sale.customer_id'),
-                'type' => $request->input('sale.type'), // sale or waste
+                'type' => $request->input('sale.type'),
                 'total' => $request->input('sale.total'),
                 'is_electronic_invoiced' => $request->input('sale.is_electronic_invoiced', false),
             ]);
 
-            // 2. Create Sale Details & Calculate Inventory Consumption
             $branch_id = $session->cashRegister->branch_id;
 
             foreach ($request->input('items') as $item) {
@@ -75,12 +74,27 @@ class PosController extends Controller
                     'cost' => $item['cost'],
                     'subtotal' => $item['price'] * $item['quantity'],
                 ]);
-
-                // Reduce Inventory Recurrently
-                $this->processInventory($item['product_id'], $branch_id, $item['quantity']);
             }
 
-            // 3. Register Payments
+            $productConsumption = [];
+            $products = Product::whereIn('id', array_column($request->input('items'), 'product_id'))
+                ->with('components.childProduct.components.childProduct')
+                ->get()
+                ->keyBy('id');
+
+            foreach ($request->input('items') as $item) {
+                $pid = (int) $item['product_id'];
+                $qty = (float) $item['quantity'];
+                if (isset($products[$pid])) {
+                    $itemConsumption = $this->collectProductIds($products[$pid], $qty);
+                    foreach ($itemConsumption as $leafId => $leafQty) {
+                        $productConsumption[$leafId] = ($productConsumption[$leafId] ?? 0) + $leafQty;
+                    }
+                }
+            }
+
+            $this->processInventory($productConsumption, $branch_id);
+
             if ($request->input('sale.type') === 'sale' && $request->filled('payments')) {
                 foreach ($request->input('payments') as $payment) {
                     Payment::create([
@@ -90,9 +104,6 @@ class PosController extends Controller
                     ]);
                 }
             }
-
-            // Update session final calculated balance directly based on pure cash?
-            // Usually cash flow implies only Cash payments sum to the box. Assuming for now total sales sum.
 
             DB::commit();
 
@@ -109,31 +120,50 @@ class PosController extends Controller
         }
     }
 
-    /**
-     * Resuelve inventario para productos compuestos/recetas de forma recursiva.
-     */
-    private function processInventory($product_id, $branch_id, $consume_quantity)
+    private function collectProductIds(Product $product, float $quantity): array
     {
-        $product = Product::with('components')->find($product_id);
+        $map = [];
 
-        if (! $product) {
+        if ($product->is_composite && $product->components->count() > 0) {
+            foreach ($product->components as $component) {
+                if ($component->childProduct) {
+                    $subMap = $this->collectProductIds($component->childProduct, $component->quantity * $quantity);
+                    foreach ($subMap as $pid => $qty) {
+                        $map[$pid] = ($map[$pid] ?? 0) + $qty;
+                    }
+                }
+            }
+        } else {
+            $map[$product->id] = ($map[$product->id] ?? 0) + $quantity;
+        }
+
+        return $map;
+    }
+
+    private function processInventory(array $productConsumption, int $branch_id): void
+    {
+        if (empty($productConsumption)) {
             return;
         }
 
-        if ($product->is_composite && $product->components->count() > 0) {
-            // Recipe: Reduce ingredients
-            foreach ($product->components as $component) {
-                $total_needed = $component->quantity * $consume_quantity;
-                $this->processInventory($component->child_product_id, $branch_id, $total_needed);
+        $productIds = array_keys($productConsumption);
+
+        $inventories = Inventory::whereIn('product_id', $productIds)
+            ->where('branch_id', $branch_id)
+            ->get()
+            ->keyBy('product_id');
+
+        foreach ($productConsumption as $productId => $quantity) {
+            if (isset($inventories[$productId])) {
+                $inventories[$productId]->stock -= $quantity;
+                $inventories[$productId]->save();
+            } else {
+                Inventory::create([
+                    'product_id' => $productId,
+                    'branch_id' => $branch_id,
+                    'stock' => -$quantity,
+                ]);
             }
-        } else {
-            // Simple product: Reduce stock directly
-            $inv = Inventory::firstOrCreate(
-                ['product_id' => $product_id, 'branch_id' => $branch_id],
-                ['stock' => 0]
-            );
-            $inv->stock -= $consume_quantity;
-            $inv->save();
         }
     }
 }

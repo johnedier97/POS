@@ -12,7 +12,7 @@ class InventoryController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Inventory::with(['product', 'branch']);
+        $query = Inventory::with(['product.unitOfMeasure', 'branch']);
 
         // Optional filtering by branch if parameter is present
         if ($request->filled('branch_id')) {
