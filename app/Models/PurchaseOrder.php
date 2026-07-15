@@ -12,15 +12,18 @@ class PurchaseOrder extends Model
         'date' => 'datetime',
     ];
 
-    public function details() {
+    public function details()
+    {
         return $this->hasMany(PurchaseOrderDetail::class);
     }
 
-    public function supplier() {
+    public function supplier()
+    {
         return $this->belongsTo(Supplier::class);
     }
 
-    public function branch() {
+    public function branch()
+    {
         return $this->belongsTo(Branch::class);
     }
 }

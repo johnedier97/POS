@@ -10,23 +10,24 @@ class BranchController extends Controller
     public function index()
     {
         $branches = Branch::withCount('cashRegisters')->latest()->paginate(10);
+
         return view('branches.index', compact('branches'));
     }
 
     public function create()
     {
-        return view('branches.form', ['branch' => new Branch()]);
+        return view('branches.form', ['branch' => new Branch]);
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'address' => 'nullable|string|max:500'
+            'address' => 'nullable|string|max:500',
         ]);
-        
+
         Branch::create($request->all());
-        
+
         return redirect()->route('branches.index')->with('success', 'Sucursal creada exitosamente.');
     }
 
@@ -39,17 +40,18 @@ class BranchController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'address' => 'nullable|string|max:500'
+            'address' => 'nullable|string|max:500',
         ]);
-        
+
         $branch->update($request->all());
-        
+
         return redirect()->route('branches.index')->with('success', 'Sucursal actualizada exitosamente.');
     }
 
     public function destroy(Branch $branch)
     {
         $branch->delete();
+
         return redirect()->route('branches.index')->with('success', 'Sucursal eliminada exitosamente.');
     }
 }

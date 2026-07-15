@@ -10,19 +10,20 @@ class UnitOfMeasureController extends Controller
     public function index()
     {
         $units = UnitOfMeasure::latest()->paginate(10);
+
         return view('units.index', compact('units'));
     }
 
     public function create()
     {
-        return view('units.form', ['unit' => new UnitOfMeasure()]);
+        return view('units.form', ['unit' => new UnitOfMeasure]);
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'abbreviation' => 'required|string|max:10'
+            'abbreviation' => 'required|string|max:10',
         ]);
 
         UnitOfMeasure::create($request->all());
@@ -39,7 +40,7 @@ class UnitOfMeasureController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'abbreviation' => 'required|string|max:10'
+            'abbreviation' => 'required|string|max:10',
         ]);
 
         $unit->update($request->all());
@@ -50,6 +51,7 @@ class UnitOfMeasureController extends Controller
     public function destroy(UnitOfMeasure $unit)
     {
         $unit->delete();
+
         return redirect()->route('units.index')->with('success', 'Unidad eliminada exitosamente.');
     }
 }

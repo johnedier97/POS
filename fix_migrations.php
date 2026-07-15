@@ -1,5 +1,6 @@
 <?php
-$dir = __DIR__ . '/database/migrations';
+
+$dir = __DIR__.'/database/migrations';
 $files = scandir($dir);
 
 $schemas = [
@@ -19,7 +20,7 @@ $schemas = [
     'sale_details' => "\$table->foreignId('sale_id')->constrained()->onDelete('cascade');\n\$table->foreignId('product_id')->constrained()->onDelete('cascade');\n\$table->decimal('quantity', 10, 4);\n\$table->decimal('price', 15, 2)->default(0);\n\$table->decimal('cost', 15, 2)->default(0);\n\$table->decimal('subtotal', 15, 2)->default(0);\n",
     'payment_methods' => "\$table->string('name');\n\$table->boolean('is_active')->default(true);\n",
     'payments' => "\$table->foreignId('sale_id')->constrained()->onDelete('cascade');\n\$table->foreignId('payment_method_id')->constrained()->onDelete('cascade');\n\$table->decimal('amount', 15, 2);\n",
-    'settings' => "\$table->string('key')->unique();\n\$table->text('value')->nullable();\n"
+    'settings' => "\$table->string('key')->unique();\n\$table->text('value')->nullable();\n",
 ];
 
 $template = <<<"EOT"
@@ -49,7 +50,7 @@ EOT;
 
 foreach ($files as $file) {
     if (strpos($file, 'create_users_table') !== false) {
-        $usersPath = $dir . '/' . $file;
+        $usersPath = $dir.'/'.$file;
         $content = file_get_contents($usersPath);
         if (strpos($content, 'role_id') === false) {
             $content = str_replace(
@@ -65,8 +66,8 @@ foreach ($files as $file) {
 
 foreach ($schemas as $tableName => $schema) {
     foreach ($files as $file) {
-        if (strpos($file, 'create_' . $tableName . '_table') !== false) {
-            $path = $dir . '/' . $file;
+        if (strpos($file, 'create_'.$tableName.'_table') !== false) {
+            $path = $dir.'/'.$file;
             $indentedSchema = str_replace("\n", "\n            ", rtrim($schema));
             $content = str_replace(['__TABLE_NAME__', '__SCHEMA__'], [$tableName, $indentedSchema], $template);
             file_put_contents($path, $content);

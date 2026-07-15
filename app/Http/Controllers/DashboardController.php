@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Sale;
-use App\Models\Inventory;
 use App\Models\CashRegisterSession;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
+use App\Models\Inventory;
+use App\Models\Sale;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
@@ -35,19 +33,19 @@ class DashboardController extends Controller
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
             $days[] = $date->format('D d'); // Ex: Mon 25
-            
+
             $total = Sale::where('type', 'sale')
                 ->whereDate('created_at', $date)
                 ->sum('total');
-                
-            $salesData[] = (float)$total;
+
+            $salesData[] = (float) $total;
         }
 
         return view('dashboard', compact(
-            'todaySales', 
-            'inventoryAlerts', 
-            'activeRegisters', 
-            'days', 
+            'todaySales',
+            'inventoryAlerts',
+            'activeRegisters',
+            'days',
             'salesData'
         ));
     }

@@ -11,19 +11,28 @@ class Sale extends Model
 
     protected $fillable = ['session_id', 'user_id', 'customer_id', 'type', 'total', 'is_electronic_invoiced'];
 
-    public function details() {
+    public function details()
+    {
         return $this->hasMany(SaleDetail::class);
     }
-    public function payments() {
+
+    public function payments()
+    {
         return $this->hasMany(Payment::class);
     }
-    public function session() {
+
+    public function session()
+    {
         return $this->belongsTo(CashRegisterSession::class, 'session_id');
     }
-    public function customer() {
+
+    public function customer()
+    {
         return $this->belongsTo(Customer::class);
     }
-    public function user() {
+
+    public function user()
+    {
         return $this->belongsTo(User::class);
     }
 }

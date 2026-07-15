@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use App\Models\UnitOfMeasure;
 use App\Models\ProductComponent;
+use App\Models\UnitOfMeasure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -13,6 +13,7 @@ class ProductController extends Controller
     public function index()
     {
         $products = Product::with('unitOfMeasure')->latest()->paginate(10);
+
         return view('products.index', compact('products'));
     }
 
@@ -20,10 +21,11 @@ class ProductController extends Controller
     {
         $units = UnitOfMeasure::all();
         $allProducts = Product::all(); // For selecting components
+
         return view('products.form', [
-            'product' => new Product(),
+            'product' => new Product,
             'units' => $units,
-            'allProducts' => $allProducts
+            'allProducts' => $allProducts,
         ]);
     }
 
@@ -41,20 +43,20 @@ class ProductController extends Controller
 
         $data = $request->except(['image', 'components']);
         $data['is_composite'] = $request->boolean('is_composite');
-        
+
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('products', 'public');
         }
-        
+
         $product = Product::create($data);
 
         if ($data['is_composite'] && $request->filled('components')) {
             foreach ($request->components as $component) {
-                if(isset($component['id']) && isset($component['quantity'])) {
+                if (isset($component['id']) && isset($component['quantity'])) {
                     ProductComponent::create([
                         'parent_product_id' => $product->id,
                         'child_product_id' => $component['id'],
-                        'quantity' => $component['quantity']
+                        'quantity' => $component['quantity'],
                     ]);
                 }
             }
@@ -68,7 +70,7 @@ class ProductController extends Controller
         $units = UnitOfMeasure::all();
         $allProducts = Product::where('id', '!=', $product->id)->get();
         $product->load('components.childProduct');
-        
+
         return view('products.form', compact('product', 'units', 'allProducts'));
     }
 
@@ -101,11 +103,11 @@ class ProductController extends Controller
             $product->components()->delete(); // Clear old components
             if ($request->filled('components')) {
                 foreach ($request->components as $component) {
-                    if(isset($component['id']) && isset($component['quantity'])) {
+                    if (isset($component['id']) && isset($component['quantity'])) {
                         ProductComponent::create([
                             'parent_product_id' => $product->id,
                             'child_product_id' => $component['id'],
-                            'quantity' => $component['quantity']
+                            'quantity' => $component['quantity'],
                         ]);
                     }
                 }
@@ -124,6 +126,7 @@ class ProductController extends Controller
             Storage::disk('public')->delete($product->image_path);
         }
         $product->delete();
+
         return redirect()->route('products.index')->with('success', 'Producto eliminado exitosamente.');
     }
 }

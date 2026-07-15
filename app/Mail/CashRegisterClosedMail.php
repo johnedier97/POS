@@ -6,6 +6,7 @@ use App\Models\CashRegisterSession;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
@@ -15,8 +16,11 @@ class CashRegisterClosedMail extends Mailable implements ShouldQueue
     use Queueable, SerializesModels;
 
     public $session;
+
     public $totalSales;
+
     public $reportedCash;
+
     public $difference;
 
     /**
@@ -36,7 +40,7 @@ class CashRegisterClosedMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Notificación de Cierre de Caja - ' . ($this->session->cashRegister->branch->name ?? 'Sucursal'),
+            subject: 'Notificación de Cierre de Caja - '.($this->session->cashRegister->branch->name ?? 'Sucursal'),
         );
     }
 
@@ -53,7 +57,7 @@ class CashRegisterClosedMail extends Mailable implements ShouldQueue
     /**
      * Get the attachments for the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return array<int, Attachment>
      */
     public function attachments(): array
     {

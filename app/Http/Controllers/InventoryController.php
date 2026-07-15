@@ -21,15 +21,15 @@ class InventoryController extends Controller
 
         // Search by product name
         if ($request->filled('search')) {
-            $query->whereHas('product', function($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%');
+            $query->whereHas('product', function ($q) use ($request) {
+                $q->where('name', 'like', '%'.$request->search.'%');
             });
         }
 
         $inventories = $query->orderBy('branch_id')
-                             ->latest('updated_at')
-                             ->paginate(15)
-                             ->withQueryString();
+            ->latest('updated_at')
+            ->paginate(15)
+            ->withQueryString();
 
         return view('inventory.index', compact('inventories'));
     }

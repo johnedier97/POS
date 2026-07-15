@@ -10,14 +10,14 @@ class CashRegisterSession extends Model
     use HasFactory;
 
     protected $fillable = [
-        'cash_register_id', 
-        'user_id', 
-        'opened_at', 
-        'closed_at', 
-        'initial_balance', 
-        'final_calculated_balance', 
-        'final_reported_balance', 
-        'status'
+        'cash_register_id',
+        'user_id',
+        'opened_at',
+        'closed_at',
+        'initial_balance',
+        'final_calculated_balance',
+        'final_reported_balance',
+        'status',
     ];
 
     protected $casts = [

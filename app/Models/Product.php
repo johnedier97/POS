@@ -16,7 +16,7 @@ class Product extends Model
         'cost',
         'price',
         'unit_of_measure_id',
-        'is_composite'
+        'is_composite',
     ];
 
     public function unitOfMeasure()

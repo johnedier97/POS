@@ -11,11 +11,13 @@ class Inventory extends Model
 
     protected $fillable = ['product_id', 'branch_id', 'stock'];
 
-    public function product() {
+    public function product()
+    {
         return $this->belongsTo(Product::class);
     }
-    
-    public function branch() {
+
+    public function branch()
+    {
         return $this->belongsTo(Branch::class);
     }
 }

@@ -11,16 +11,19 @@ class Payment extends Model
 
     protected $fillable = ['sale_id', 'payment_method_id', 'amount'];
 
-    public function method() {
+    public function method()
+    {
         return $this->belongsTo(PaymentMethod::class, 'payment_method_id');
     }
 
     // Alias used in receipt view
-    public function paymentMethod() {
+    public function paymentMethod()
+    {
         return $this->belongsTo(PaymentMethod::class, 'payment_method_id');
     }
 
-    public function sale() {
+    public function sale()
+    {
         return $this->belongsTo(Sale::class);
     }
 }

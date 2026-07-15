@@ -2,24 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Product;
-use App\Models\PaymentMethod;
 use App\Models\Customer;
+use App\Models\Inventory;
+use App\Models\Payment;
+use App\Models\PaymentMethod;
+use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleDetail;
-use App\Models\Payment;
-use App\Models\Inventory;
-use App\Models\ProductComponent;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PosController extends Controller
 {
     public function index()
     {
         $session = Auth::user()->sessions()->where('status', 'open')->latest()->first();
-        if (!$session) {
+        if (! $session) {
             return redirect()->route('dashboard')->with('error', 'Debes abrir tu turno en una caja antes de entrar al modulo de ventas.');
         }
 
@@ -40,7 +39,7 @@ class PosController extends Controller
     public function store(Request $request)
     {
         $session = Auth::user()->sessions()->where('status', 'open')->latest()->first();
-        if (!$session) {
+        if (! $session) {
             return response()->json(['error' => 'No hay caja abierta activa para realizar la transacción.'], 403);
         }
 
@@ -48,7 +47,7 @@ class PosController extends Controller
             'sale.type' => 'required|in:sale,waste',
             'sale.total' => 'required|numeric|min:0',
             'items' => 'required|array|min:1',
-            'payments' => 'nullable|array'
+            'payments' => 'nullable|array',
         ]);
 
         try {
@@ -61,7 +60,7 @@ class PosController extends Controller
                 'customer_id' => $request->input('sale.customer_id'),
                 'type' => $request->input('sale.type'), // sale or waste
                 'total' => $request->input('sale.total'),
-                'is_electronic_invoiced' => $request->input('sale.is_electronic_invoiced', false)
+                'is_electronic_invoiced' => $request->input('sale.is_electronic_invoiced', false),
             ]);
 
             // 2. Create Sale Details & Calculate Inventory Consumption
@@ -87,24 +86,25 @@ class PosController extends Controller
                     Payment::create([
                         'sale_id' => $sale->id,
                         'payment_method_id' => $payment['payment_method_id'],
-                        'amount' => $payment['amount']
+                        'amount' => $payment['amount'],
                     ]);
                 }
             }
 
             // Update session final calculated balance directly based on pure cash?
             // Usually cash flow implies only Cash payments sum to the box. Assuming for now total sales sum.
-            
+
             DB::commit();
-            
+
             return response()->json([
-                'success' => true, 
-                'sale_id' => $sale->id, 
-                'message' => '¡Venta procesada y almacenada con éxito!'
+                'success' => true,
+                'sale_id' => $sale->id,
+                'message' => '¡Venta procesada y almacenada con éxito!',
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -116,7 +116,9 @@ class PosController extends Controller
     {
         $product = Product::with('components')->find($product_id);
 
-        if (!$product) return;
+        if (! $product) {
+            return;
+        }
 
         if ($product->is_composite && $product->components->count() > 0) {
             // Recipe: Reduce ingredients

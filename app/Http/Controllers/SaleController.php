@@ -44,7 +44,7 @@ class SaleController extends Controller
             'payments.paymentMethod',
             'customer',
             'session.cashRegister.branch',
-            'user'
+            'user',
         ]);
 
         return view('sales.show', compact('sale'));
@@ -92,10 +92,10 @@ class SaleController extends Controller
         ]);
 
         return response()->json([
-            'success'      => true,
-            'cufe'         => strtoupper(bin2hex(random_bytes(10))), // Mock CUFE
-            'invoice_no'   => 'FE-' . str_pad($sale->id, 6, '0', STR_PAD_LEFT),
-            'message'      => 'Factura Electrónica emitida (simulación). CUFE asignado.'
+            'success' => true,
+            'cufe' => strtoupper(bin2hex(random_bytes(10))), // Mock CUFE
+            'invoice_no' => 'FE-'.str_pad($sale->id, 6, '0', STR_PAD_LEFT),
+            'message' => 'Factura Electrónica emitida (simulación). CUFE asignado.',
         ]);
     }
 }

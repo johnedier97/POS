@@ -1,6 +1,6 @@
 <?php
 
-$dir = __DIR__ . '/database/migrations';
+$dir = __DIR__.'/database/migrations';
 $files = scandir($dir);
 
 $schemas = [
@@ -21,36 +21,38 @@ $schemas = [
     'sale_details' => "\$table->foreignId('sale_id')->constrained()->onDelete('cascade');\n            \$table->foreignId('product_id')->constrained()->onDelete('cascade');\n            \$table->decimal('quantity', 10, 4);\n            \$table->decimal('price', 15, 2)->default(0);\n            \$table->decimal('cost', 15, 2)->default(0);\n            \$table->decimal('subtotal', 15, 2)->default(0);\n",
     'payment_methods' => "\$table->string('name');\n            \$table->boolean('is_active')->default(true);\n",
     'payments' => "\$table->foreignId('sale_id')->constrained()->onDelete('cascade');\n            \$table->foreignId('payment_method_id')->constrained()->onDelete('cascade');\n            \$table->decimal('amount', 15, 2);\n",
-    'settings' => "\$table->string('key')->unique();\n            \$table->text('value')->nullable();\n"
+    'settings' => "\$table->string('key')->unique();\n            \$table->text('value')->nullable();\n",
 ];
 
 foreach ($files as $file) {
-    if ($file === '.' || $file === '..') continue;
-    
-    $path = $dir . '/' . $file;
+    if ($file === '.' || $file === '..') {
+        continue;
+    }
+
+    $path = $dir.'/'.$file;
     $content = file_get_contents($path);
-    
+
     foreach ($schemas as $tableName => $schemaInject) {
-        if (strpos($file, 'create_' . $tableName . '_table') !== false) {
-            
+        if (strpos($file, 'create_'.$tableName.'_table') !== false) {
+
             // Si es users, insertarlo despues de $table->string('password');
             if ($tableName === 'users') {
                 $content = preg_replace(
                     "/(table->string\('password'\);)/",
-                    "$1\n            " . trim($schemaInject),
+                    "$1\n            ".trim($schemaInject),
                     $content
                 );
             } else {
                 // Para las demas, insertarlo despues del $table->timestamps(); o en su defecto de $table->id();
-                if (strpos($content, "\$table->timestamps();") !== false) {
+                if (strpos($content, '$table->timestamps();') !== false) {
                     $content = preg_replace(
                         "/(\\$table->id\\(\\);)/",
-                        "$1\n            " . trim(preg_replace('/\n[ ]+/', "\n            ", $schemaInject)),
+                        "$1\n            ".trim(preg_replace('/\n[ ]+/', "\n            ", $schemaInject)),
                         $content
                     );
                 }
             }
-            
+
             file_put_contents($path, $content);
             echo "Updated {$file}\n";
             break;

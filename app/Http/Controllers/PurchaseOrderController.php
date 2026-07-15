@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\Branch;
+use App\Models\Inventory;
+use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderDetail;
-use App\Models\Branch;
 use App\Models\Supplier;
-use App\Models\Product;
-use App\Models\Inventory;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class PurchaseOrderController extends Controller
@@ -16,6 +16,7 @@ class PurchaseOrderController extends Controller
     public function index()
     {
         $purchases = PurchaseOrder::with(['supplier', 'branch'])->latest()->paginate(10);
+
         return view('purchases.index', compact('purchases'));
     }
 
@@ -68,16 +69,18 @@ class PurchaseOrderController extends Controller
             DB::commit();
 
             return redirect()->route('purchases.show', $purchaseOrder)
-                             ->with('success', 'Orden de Compra creada exitosamente. Esperando recepción.');
+                ->with('success', 'Orden de Compra creada exitosamente. Esperando recepción.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Error al crear la orden: ' . $e->getMessage())->withInput();
+
+            return redirect()->back()->with('error', 'Error al crear la orden: '.$e->getMessage())->withInput();
         }
     }
 
     public function show(PurchaseOrder $purchase)
     {
         $purchase->load(['details.product', 'supplier', 'branch']);
+
         return view('purchases.show', compact('purchase'));
     }
 
@@ -96,7 +99,7 @@ class PurchaseOrderController extends Controller
                     ['branch_id' => $purchase->branch_id, 'product_id' => $detail->product_id],
                     ['stock' => 0]
                 );
-                
+
                 $inventory->stock += $detail->quantity;
                 $inventory->save();
             }
@@ -107,10 +110,11 @@ class PurchaseOrderController extends Controller
             DB::commit();
 
             return redirect()->route('purchases.show', $purchase)
-                             ->with('success', 'Mercancía recibida e inventario actualizado en sucursal.');
+                ->with('success', 'Mercancía recibida e inventario actualizado en sucursal.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Hubo un error al recibir la mercancía: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Hubo un error al recibir la mercancía: '.$e->getMessage());
         }
     }
 
@@ -126,8 +130,8 @@ class PurchaseOrderController extends Controller
             // Revertir inventario
             foreach ($purchase->details as $detail) {
                 $inventory = Inventory::where('branch_id', $purchase->branch_id)
-                                      ->where('product_id', $detail->product_id)
-                                      ->first();
+                    ->where('product_id', $detail->product_id)
+                    ->first();
                 if ($inventory) {
                     $inventory->stock -= $detail->quantity;
                     $inventory->save();
@@ -140,10 +144,11 @@ class PurchaseOrderController extends Controller
             DB::commit();
 
             return redirect()->route('purchases.show', $purchase)
-                             ->with('success', 'Orden revertida exitosamente. El inventario ha sido restado.');
+                ->with('success', 'Orden revertida exitosamente. El inventario ha sido restado.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Hubo un error al revertir la orden: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Hubo un error al revertir la orden: '.$e->getMessage());
         }
     }
 }

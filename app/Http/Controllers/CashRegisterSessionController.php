@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CashRegisterSession;
+use App\Jobs\SendCashRegisterClosedMail;
 use App\Models\CashRegister;
+use App\Models\CashRegisterSession;
 use App\Models\Payment;
-use App\Models\User;
-use App\Mail\CashRegisterClosedMail;
+use App\Models\PaymentMethod;
+use App\Models\Sale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Mail;
 
 class CashRegisterSessionController extends Controller
 {
@@ -24,7 +24,7 @@ class CashRegisterSessionController extends Controller
         // Mostrar solo cajas activas que NO tengan una sesión abierta
         $registers = CashRegister::with('branch')
             ->where('is_active', true)
-            ->whereDoesntHave('sessions', function($q) {
+            ->whereDoesntHave('sessions', function ($q) {
                 $q->where('status', 'open');
             })->get();
 
@@ -35,7 +35,7 @@ class CashRegisterSessionController extends Controller
     {
         $request->validate([
             'cash_register_id' => 'required|exists:cash_registers,id',
-            'initial_balance' => 'required|numeric|min:0'
+            'initial_balance' => 'required|numeric|min:0',
         ]);
 
         CashRegisterSession::create([
@@ -43,7 +43,7 @@ class CashRegisterSessionController extends Controller
             'user_id' => Auth::id(),
             'opened_at' => now(),
             'initial_balance' => $request->initial_balance,
-            'status' => 'open'
+            'status' => 'open',
         ]);
 
         return redirect()->route('dashboard')->with('success', 'Caja abierta exitosamente. ¡El turno ha comenzado!');
@@ -62,20 +62,20 @@ class CashRegisterSessionController extends Controller
     public function update(Request $request, CashRegisterSession $session)
     {
         $request->validate([
-            'final_reported_balance' => 'required|numeric|min:0'
+            'final_reported_balance' => 'required|numeric|min:0',
         ]);
 
         // Calculate expected balance based on cash payments + initial balance
-        $cashPaymentMethodId = \App\Models\PaymentMethod::where('name', 'Efectivo')->value('id');
-        
+        $cashPaymentMethodId = PaymentMethod::where('name', 'Efectivo')->value('id');
+
         $totalCashSales = 0;
         if ($cashPaymentMethodId) {
-            $totalCashSales = \App\Models\Payment::whereHas('sale', function ($query) use ($session) {
+            $totalCashSales = Payment::whereHas('sale', function ($query) use ($session) {
                 $query->where('session_id', $session->id)->where('type', 'sale');
             })->where('payment_method_id', $cashPaymentMethodId)->sum('amount');
         } else {
             // Fallback if 'Efectivo' payment method is missing
-            $totalCashSales = \App\Models\Sale::where('session_id', $session->id)->where('type', 'sale')->sum('total');
+            $totalCashSales = Sale::where('session_id', $session->id)->where('type', 'sale')->sum('total');
         }
 
         $calculated_balance = $session->initial_balance + $totalCashSales;
@@ -83,29 +83,23 @@ class CashRegisterSessionController extends Controller
         // Verify if reported matches calculated (with rounding to avoid float precision issues)
         if (round($request->final_reported_balance, 2) !== round($calculated_balance, 2)) {
             return redirect()->back()
-                ->with('error', 'El monto FÍSICO reportado ($' . number_format($request->final_reported_balance, 2) . ') no coincide con el balance CALCULADO del sistema ($' . number_format($calculated_balance, 2) . '). Verifica el dinero en gaveta o la validez de las ventas antes de cerrar.');
+                ->with('error', 'El monto FÍSICO reportado ($'.number_format($request->final_reported_balance, 2).') no coincide con el balance CALCULADO del sistema ($'.number_format($calculated_balance, 2).'). Verifica el dinero en gaveta o la validez de las ventas antes de cerrar.');
         }
 
         $session->update([
             'closed_at' => now(),
             'final_reported_balance' => $request->final_reported_balance,
-            'final_calculated_balance' => $calculated_balance, 
-            'status' => 'closed'
+            'final_calculated_balance' => $calculated_balance,
+            'status' => 'closed',
         ]);
 
-        // Notificar a los administradores vía Cola (Queue)
+        // Notificar a los administradores vía Job (Cola)
         try {
-            $admins = User::whereHas('role', function($query) {
-                $query->where('name', 'admin');
-            })->get();
-
-            foreach ($admins as $admin) {
-                Mail::to($admin->email)->queue(new CashRegisterClosedMail($session, $totalCashSales, $request->final_reported_balance));
-            }
+            SendCashRegisterClosedMail::dispatch($session, (float) $totalCashSales, (float) $request->final_reported_balance);
         } catch (\Exception $e) {
-            \Log::error("Error enviando correos de cierre de caja: " . $e->getMessage());
+            \Log::error('Error despachando Job de notificación de cierre de caja: '.$e->getMessage());
         }
 
-        return redirect()->route('dashboard')->with('success', 'Turno cerrado. Caja arqueada exitosamente con un balance de $' . number_format($calculated_balance, 2));
+        return redirect()->route('dashboard')->with('success', 'Turno cerrado. Caja arqueada exitosamente con un balance de $'.number_format($calculated_balance, 2));
     }
 }
