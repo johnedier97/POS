@@ -33,6 +33,20 @@
         </div>
     </header>
 
+    <!-- Toast Notification -->
+    <div x-show="toastVisible" 
+         x-transition:enter="transition ease-out duration-300" 
+         x-transition:enter-start="opacity-0 translate-y-2" 
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-2"
+         class="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-black px-6 py-3 rounded-xl shadow-lg font-bold text-sm flex items-center gap-2"
+         style="display: none;">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+        <span x-text="toastMessage"></span>
+    </div>
+
     <div class="flex h-[calc(100vh-4rem)]">
         
         <!-- Left Sub-panel: Products Grid -->
@@ -56,22 +70,28 @@
             <div class="flex-grow p-4 overflow-y-auto">
                 <div class="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     <template x-for="product in filteredProducts" :key="product.id">
-                        <div @click="addProduct(product)" class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-indigo-300 cursor-pointer transition-all transform active:scale-95 group flex flex-col h-48">
+                        <div @click="addProduct(product)" 
+                             class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-indigo-300 cursor-pointer transition-all transform active:scale-95 group flex flex-col h-48 relative"
+                             :class="{ 'pointer-events-none': product.stock !== undefined && product.stock <= 0 }">
                             <div class="h-24 bg-gray-100 w-full relative">
                                 <template x-if="product.image_path">
-                                    <img :src="'/storage/' + product.image_path" class="w-full h-full object-cover">
+                                    <img :src="'/storage/' + product.image_path" class="w-full h-full object-cover" :class="{ 'opacity-50 grayscale': product.stock !== undefined && product.stock <= 0 }">
                                 </template>
                                 <template x-if="!product.image_path">
-                                    <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                    <div class="w-full h-full flex items-center justify-center text-gray-400" :class="{ 'opacity-50 grayscale': product.stock !== undefined && product.stock <= 0 }">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                     </div>
                                 </template>
                                 <div class="absolute inset-0 bg-indigo-900 opacity-0 group-hover:opacity-10 transition-opacity"></div>
-                                <span x-show="product.is_composite" class="absolute top-2 right-2 bg-indigo-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">Receta</span>
+                                <span x-show="product.is_composite" class="absolute top-2 left-2 bg-indigo-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">Receta</span>
+                                <span x-show="product.stock !== undefined && product.stock <= 0" class="absolute top-2 right-2 bg-red-500 text-black text-[10px] font-bold px-2 py-0.5 rounded-full shadow">AGOTADO</span>
                             </div>
-                            <div class="p-3 flex-grow flex flex-col justify-between">
+                            <div class="p-3 flex-grow flex flex-col justify-between" :class="{ 'opacity-50': product.stock !== undefined && product.stock <= 0 }">
                                 <h3 class="text-sm font-bold text-gray-800 leading-tight line-clamp-2" x-text="product.name"></h3>
-                                <p class="text-indigo-600 font-extrabold" x-text="'$' + formatMoney(product.price)"></p>
+                                <div class="flex items-center justify-between">
+                                    <p class="text-indigo-600 font-extrabold" x-text="'$' + formatMoney(product.price)"></p>
+                                    <span x-show="product.stock !== undefined && product.stock > 0" class="text-[10px] text-gray-400 font-medium" x-text="'Stock: ' + product.stock"></span>
+                                </div>
                             </div>
                         </div>
                     </template>
@@ -115,8 +135,8 @@
                     </span>
                     <svg class="w-4 h-4 text-indigo-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
                 </button>
-                <button @click="currentTab.type = (currentTab.type === 'sale' ? 'waste' : 'sale')" class="px-3 py-2 rounded-lg text-sm font-bold border transition" :class="currentTab.type === 'sale' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100'">
-                    <span x-text="currentTab.type === 'sale' ? 'Venta' : 'Novedad'"></span>
+                <button @click="currentTab.type = (currentTab.type === 'sale' ? 'waste' : (currentTab.type === 'waste' ? 'consumo' : 'sale'))" class="px-3 py-2 rounded-lg text-sm font-bold border transition" :class="currentTab.type === 'sale' ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : (currentTab.type === 'waste' ? 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100' : 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100')">
+                    <span x-text="currentTab.type === 'sale' ? 'Venta' : (currentTab.type === 'waste' ? 'Novedad' : 'Consumo')"></span>
                 </button>
             </div>
 
@@ -182,8 +202,8 @@
                 <button @click="openPaymentModal" 
                         :disabled="currentTab.cart.length === 0" 
                         class="w-full flex items-center justify-center py-4 rounded-xl text-lg tracking-wide uppercase shadow-[0_4px_14px_0_rgba(79,70,229,0.39)] transition-all font-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        :class="currentTab.type === 'sale' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-orange-500 hover:bg-orange-600 text-white'">
-                    <span x-text="currentTab.type === 'sale' ? 'Cobrar Venta' : 'Registrar Novedad'"></span>
+                        :class="currentTab.type === 'sale' ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : (currentTab.type === 'waste' ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white')">
+                    <span x-text="currentTab.type === 'sale' ? 'Cobrar Venta' : (currentTab.type === 'waste' ? 'Registrar Novedad' : 'Registrar Consumo')"></span>
                 </button>
             </div>
         </div>
@@ -240,17 +260,17 @@
         <div class="fixed inset-0 bg-gray-900 bg-opacity-70"></div>
         <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden text-center" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 scale-90" x-transition:enter-end="opacity-100 scale-100">
             <!-- Success Header -->
-            <div :class="lastSaleType === 'waste' ? 'bg-amber-500' : 'bg-emerald-500'" class="px-6 pt-8 pb-10 relative">
+            <div :class="lastSaleType === 'waste' ? 'bg-amber-500' : (lastSaleType === 'consumo' ? 'bg-amber-500' : 'bg-emerald-500')" class="px-6 pt-8 pb-10 relative">
                 <div class="w-20 h-20 rounded-full bg-white bg-opacity-20 flex items-center justify-center mx-auto mb-3">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" /></svg>
                 </div>
-                <h2 class="text-2xl font-black text-white" x-text="lastSaleType === 'waste' ? '¡Novedad Registrada!' : '¡Venta Exitosa!'"></h2>
-                <p class="text-white text-opacity-80 text-sm mt-1" x-text="lastSaleType === 'sale' ? 'La transacción fue procesada correctamente.' : 'El evento fue almacenado sin cargo.'"></p>
+                <h2 class="text-2xl font-black text-white" x-text="lastSaleType === 'waste' ? '¡Novedad Registrada!' : (lastSaleType === 'consumo' ? '¡Consumo Interno Registrado!' : '¡Venta Exitosa!')"></h2>
+                <p class="text-white text-opacity-80 text-sm mt-1" x-text="lastSaleType === 'sale' ? 'La transacción fue procesada correctamente.' : (lastSaleType === 'consumo' ? 'El consumo interno fue registrado sin cargo.' : 'El evento fue almacenado sin cargo.')"></p>
             </div>
             <!-- Body -->
             <div class="px-6 py-5">
                 <div class="bg-gray-50 rounded-xl p-4 mb-5">
-                    <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Total Cobrado</div>
+                    <div class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1" x-text="lastSaleType === 'consumo' ? 'Total Consumo' : 'Total Cobrado'"></div>
                     <div class="text-3xl font-black text-gray-900">$<span x-text="lastSaleTotal"></span></div>
                     <div x-show="Number(lastSaleChange) > 0" class="text-emerald-600 font-bold text-sm mt-1">Vuelto: $<span x-text="lastSaleChange"></span></div>
                 </div>
@@ -370,8 +390,8 @@
                     <button @click="processFinalSale()" 
                         :disabled="balanceDue > 0 && currentTab.type === 'sale'"
                         class="mt-8 w-full py-4 rounded-xl text-lg font-black uppercase text-white shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        :class="balanceDue <= 0 || currentTab.type === 'waste' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-gray-300'">
-                        <span x-text="processing ? 'Procesando...' : (currentTab.type === 'waste' ? 'Confirmar Novedad' : 'FINALIZAR TRANSACCIÓN')"></span>
+                        :class="balanceDue <= 0 || currentTab.type === 'waste' || currentTab.type === 'consumo' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-gray-300'">
+                        <span x-text="processing ? 'Procesando...' : (currentTab.type === 'waste' ? 'Confirmar Novedad' : (currentTab.type === 'consumo' ? 'Confirmar Consumo' : 'FINALIZAR TRANSACCIÓN'))"></span>
                     </button>
 
                 </div>
@@ -411,6 +431,9 @@
                 lastSaleType: 'sale',
                 invoicing: false,
                 invoiceStatus: '',
+                toastVisible: false,
+                toastMessage: '',
+                toastTimer: null,
 
                 get currentTab() { return this.tabs.find(t => t.id === this.activeTabId); },
                 
@@ -428,6 +451,10 @@
 
                 // Cart Actions
                 addProduct(product) {
+                    if (product.stock !== undefined && product.stock <= 0) {
+                        this.showToast('Producto agotado: ' + product.name);
+                        return;
+                    }
                     let existing = this.currentTab.cart.find(i => i.product_id === product.id);
                     if (existing) {
                         existing.quantity++;
@@ -441,6 +468,15 @@
                             quantity: 1
                         });
                     }
+                },
+
+                showToast(message) {
+                    if (this.toastTimer) clearTimeout(this.toastTimer);
+                    this.toastMessage = message;
+                    this.toastVisible = true;
+                    this.toastTimer = setTimeout(() => {
+                        this.toastVisible = false;
+                    }, 3000);
                 },
 
                 updateQty(index, change) {

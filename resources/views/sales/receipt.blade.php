@@ -100,6 +100,7 @@
         }
         .badge-sale   { background: #10b981; color: #fff; }
         .badge-waste  { background: #f59e0b; color: #fff; }
+        .badge-consumo { background: #f59e0b; color: #fff; }
 
         /* ── Meta Info ── */
         .receipt-meta {
@@ -258,8 +259,8 @@
             @if($settings->get('business_phone'))
                 <div class="subtitle">Tel: {{ $settings->get('business_phone') }}</div>
             @endif
-            <span class="receipt-type-badge {{ $sale->type === 'sale' ? 'badge-sale' : 'badge-waste' }}">
-                {{ $sale->type === 'sale' ? '✓ Comprobante de Venta' : '⚠ Registro de Novedad' }}
+            <span class="receipt-type-badge {{ $sale->type === 'sale' ? 'badge-sale' : ($sale->type === 'waste' ? 'badge-waste' : 'badge-consumo') }}">
+                {{ $sale->type === 'sale' ? '✓ Comprobante de Venta' : ($sale->type === 'waste' ? '⚠ Registro de Novedad' : '📋 Consumo Interno') }}
             </span>
         </div>
 
@@ -381,7 +382,7 @@
 
         <!-- Footer -->
         <div class="receipt-footer">
-            <div class="thank-you">¡Gracias por su compra!</div>
+            <div class="thank-you">{{ $sale->type === 'consumo' ? 'Consumo Interno Registrado' : '¡Gracias por su compra!' }}</div>
             @if($settings->get('receipt_footer_note'))
                 <div class="footer-note">{{ $settings->get('receipt_footer_note') }}</div>
             @else

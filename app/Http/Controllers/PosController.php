@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\CashRegisterSession;
 use App\Models\Customer;
 use App\Models\Inventory;
 use App\Models\Payment;
@@ -24,7 +25,22 @@ class PosController extends Controller
             return redirect()->route('dashboard')->with('error', 'Debes abrir tu turno en una caja antes de entrar al modulo de ventas.');
         }
 
+        if ($this->isSessionFromPreviousDay($session)) {
+            return redirect()->route('dashboard')->with('error', 'Tu turno fue abierto el día anterior. Debes cerrar la caja y realizar el arqueo antes de continuar.');
+        }
+
         $products = Product::all();
+        $branchId = $session->cashRegister->branch_id;
+
+        $stocks = Inventory::where('branch_id', $branchId)
+            ->whereIn('product_id', $products->pluck('id'))
+            ->pluck('stock', 'product_id');
+
+        $products = $products->map(function ($product) use ($stocks) {
+            $product->stock = (float) ($stocks[$product->id] ?? 0);
+            return $product;
+        });
+
         $paymentMethods = PaymentMethod::where('is_active', true)->get();
         if ($paymentMethods->isEmpty()) {
             PaymentMethod::create(['name' => 'Efectivo', 'is_active' => true]);
@@ -44,8 +60,12 @@ class PosController extends Controller
             return response()->json(['error' => 'No hay caja abierta activa para realizar la transacción.'], 403);
         }
 
+        if ($this->isSessionFromPreviousDay($session)) {
+            return response()->json(['error' => 'Debes cerrar la caja y realizar el arqueo antes de continuar.'], 403);
+        }
+
         $request->validate([
-            'sale.type' => 'required|in:sale,waste',
+            'sale.type' => 'required|in:sale,waste,consumo',
             'sale.total' => 'required|numeric|min:0',
             'items' => 'required|array|min:1',
             'payments' => 'nullable|array',
@@ -165,5 +185,11 @@ class PosController extends Controller
                 ]);
             }
         }
+    }
+
+    private function isSessionFromPreviousDay(CashRegisterSession $session): bool
+    {
+        $openedDate = ($session->opened_at ?? $session->created_at)->startOfDay();
+        return $openedDate->lt(now()->startOfDay());
     }
 }

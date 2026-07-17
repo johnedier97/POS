@@ -189,4 +189,178 @@ class PosControllerTest extends TestCase
 
         $response->assertStatus(422);
     }
+
+    public function test_pos_index_includes_stock_for_products(): void
+    {
+        $product = Product::factory()->simple()->create(['price' => 50.00]);
+        $branchId = $this->session->cashRegister->branch_id;
+        Inventory::factory()->create([
+            'product_id' => $product->id,
+            'branch_id' => $branchId,
+            'stock' => 15,
+        ]);
+
+        $productNoStock = Product::factory()->simple()->create(['price' => 30.00]);
+
+        $response = $this->actingAs($this->user)->get('/pos');
+
+        $response->assertStatus(200);
+        $products = $response->viewData('products');
+
+        $productWithStock = $products->firstWhere('id', $product->id);
+        $this->assertNotNull($productWithStock);
+        $this->assertEquals(15, $productWithStock->stock);
+
+        $productWithoutStock = $products->firstWhere('id', $productNoStock->id);
+        $this->assertNotNull($productWithoutStock);
+        $this->assertEquals(0, $productWithoutStock->stock);
+    }
+
+    public function test_agotado_badge_appears_in_view(): void
+    {
+        $product = Product::factory()->simple()->create(['price' => 50.00, 'name' => 'Producto Agotado Test']);
+        $branchId = $this->session->cashRegister->branch_id;
+        Inventory::factory()->create([
+            'product_id' => $product->id,
+            'branch_id' => $branchId,
+            'stock' => 0,
+        ]);
+
+        $response = $this->actingAs($this->user)->get('/pos');
+
+        $response->assertStatus(200);
+        $response->assertSee('AGOTADO');
+        $response->assertSee('Producto Agotado Test');
+    }
+
+    public function test_consumo_sale_reduces_inventory(): void
+    {
+        $product = Product::factory()->simple()->create(['price' => 50.00, 'cost' => 30.00]);
+        Inventory::factory()->create([
+            'product_id' => $product->id,
+            'branch_id' => $this->session->cashRegister->branch_id,
+            'stock' => 10,
+        ]);
+
+        $response = $this->actingAs($this->user)->postJson('/pos', [
+            'sale' => ['type' => 'consumo', 'total' => 100.00, 'customer_id' => null],
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 2, 'price' => 50.00, 'cost' => 30.00],
+            ],
+            'payments' => [],
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('sales', ['type' => 'consumo', 'total' => 100.00]);
+        $this->assertDatabaseHas('sale_details', ['product_id' => $product->id, 'quantity' => 2]);
+
+        $stock = Inventory::where('product_id', $product->id)
+            ->where('branch_id', $this->session->cashRegister->branch_id)
+            ->value('stock');
+        $this->assertEquals(8, (float) $stock);
+    }
+
+    public function test_consumo_sale_does_not_record_payments(): void
+    {
+        $product = Product::factory()->simple()->create(['price' => 50.00, 'cost' => 30.00]);
+        Inventory::factory()->create([
+            'product_id' => $product->id,
+            'branch_id' => $this->session->cashRegister->branch_id,
+            'stock' => 10,
+        ]);
+
+        $response = $this->actingAs($this->user)->postJson('/pos', [
+            'sale' => ['type' => 'consumo', 'total' => 100.00, 'customer_id' => null],
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 2, 'price' => 50.00, 'cost' => 30.00],
+            ],
+            'payments' => [
+                ['payment_method_id' => $this->cashMethod->id, 'amount' => 100.00],
+            ],
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseMissing('payments', ['amount' => 100.00]);
+    }
+
+    public function test_store_rejects_sale_with_previous_day_session(): void
+    {
+        $this->session->update(['opened_at' => now()->subDay()]);
+
+        $product = Product::factory()->simple()->create(['price' => 50.00, 'cost' => 30.00]);
+
+        $response = $this->actingAs($this->user)->postJson('/pos', [
+            'sale' => ['type' => 'sale', 'total' => 100.00],
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 2, 'price' => 50.00, 'cost' => 30.00],
+            ],
+            'payments' => [
+                ['payment_method_id' => $this->cashMethod->id, 'amount' => 100.00],
+            ],
+        ]);
+
+        $response->assertStatus(403);
+    }
+
+    public function test_store_allows_sale_with_same_day_session(): void
+    {
+        $product = Product::factory()->simple()->create(['price' => 50.00, 'cost' => 30.00]);
+
+        $response = $this->actingAs($this->user)->postJson('/pos', [
+            'sale' => ['type' => 'sale', 'total' => 100.00],
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 2, 'price' => 50.00, 'cost' => 30.00],
+            ],
+            'payments' => [
+                ['payment_method_id' => $this->cashMethod->id, 'amount' => 100.00],
+            ],
+        ]);
+
+        $response->assertStatus(200);
+    }
+
+    public function test_index_redirects_with_previous_day_session(): void
+    {
+        $this->session->update(['opened_at' => now()->subDay()]);
+
+        $response = $this->actingAs($this->user)->get('/pos');
+
+        $response->assertRedirect(route('dashboard'));
+        $response->assertSessionHas('error');
+    }
+
+    public function test_index_loads_with_same_day_session(): void
+    {
+        $response = $this->actingAs($this->user)->get('/pos');
+
+        $response->assertStatus(200);
+    }
+
+    public function test_fallback_to_created_at_when_opened_at_is_null(): void
+    {
+        \Illuminate\Support\Facades\DB::table('cash_register_sessions')
+            ->where('id', $this->session->id)
+            ->update([
+                'opened_at' => null,
+                'created_at' => now()->subDay(),
+            ]);
+
+        $product = Product::factory()->simple()->create(['price' => 50.00, 'cost' => 30.00]);
+
+        $response = $this->actingAs($this->user)->postJson('/pos', [
+            'sale' => ['type' => 'sale', 'total' => 100.00],
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 2, 'price' => 50.00, 'cost' => 30.00],
+            ],
+            'payments' => [
+                ['payment_method_id' => $this->cashMethod->id, 'amount' => 100.00],
+            ],
+        ]);
+
+        $response->assertStatus(403);
+    }
 }

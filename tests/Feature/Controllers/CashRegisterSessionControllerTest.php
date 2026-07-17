@@ -132,4 +132,45 @@ class CashRegisterSessionControllerTest extends TestCase
         $response->assertRedirect(route('dashboard'));
         $response->assertSessionHas('error');
     }
+
+    public function test_close_session_excludes_consumo_from_arqueo(): void
+    {
+        $session = CashRegisterSession::factory()->open()->create([
+            'user_id' => $this->user->id,
+            'initial_balance' => 100.00,
+        ]);
+
+        $sale = Sale::factory()->create([
+            'session_id' => $session->id,
+            'user_id' => $this->user->id,
+            'type' => 'sale',
+            'total' => 50.00,
+        ]);
+        Payment::factory()->create([
+            'sale_id' => $sale->id,
+            'payment_method_id' => $this->cashMethod->id,
+            'amount' => 50.00,
+        ]);
+
+        $consumo = Sale::factory()->create([
+            'session_id' => $session->id,
+            'user_id' => $this->user->id,
+            'type' => 'consumo',
+            'total' => 200.00,
+        ]);
+
+        $response = $this->actingAs($this->user)->put("/shift/close/{$session->id}", [
+            'final_reported_balance' => 150.00,
+        ]);
+
+        $response->assertRedirect(route('dashboard'));
+        $this->assertDatabaseHas('cash_register_sessions', [
+            'id' => $session->id,
+            'status' => 'closed',
+            'final_calculated_balance' => 150.00,
+            'final_reported_balance' => 150.00,
+        ]);
+
+        Bus::assertDispatched(SendCashRegisterClosedMail::class);
+    }
 }
